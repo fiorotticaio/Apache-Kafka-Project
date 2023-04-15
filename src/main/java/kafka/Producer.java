@@ -1,5 +1,6 @@
 package kafka;
 
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
@@ -9,15 +10,14 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 import java.util.Properties;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,9 +32,9 @@ public class Producer {
     Properties prop = new Properties();
     prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServers);
     prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    prop.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    prop.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class.getName());
 
-    KafkaProducer<String, String> producer = new KafkaProducer<String, String>(prop); // create the producer
+    KafkaProducer<String, JSONObject> producer = new KafkaProducer<>(prop); // create the producer
 
     /* Connection with Alpha Vantage API */
     String function = "TIME_SERIES_INTRADAY";
@@ -62,9 +62,9 @@ public class Producer {
 
       System.out.println("JSON GERADO: " + data);
 
-      // TODO: Mudar o produtor para enviar o JSON inteiro
-      // ProducerRecord<String, String> record = new ProducerRecord<>(topic, data);
-      // producer.send(record);
+      
+      ProducerRecord<String, JSONObject> record = new ProducerRecord<>(topic, data);
+      producer.send(record);
       Thread.sleep(60000); // espera 1min segundos antes de buscar novos dados
     }
   }
