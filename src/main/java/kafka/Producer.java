@@ -68,7 +68,7 @@ public class Producer {
 
       
       
-      Thread.sleep(60000); // espera 1min segundos antes de buscar novos dados
+      Thread.sleep(20000); // espera 1min segundos antes de buscar novos dados
     }
   }
 }
