@@ -47,8 +47,15 @@ public class Consumer {
         logger.info("Key: " + record.key() + ", Value:\n");
         byte[] valueBytes = record.value();
         JSONObject data = new JSONObject(new String(valueBytes, StandardCharsets.UTF_8));
-        logger.info(data.toString());
-        logger.info("\n\n");
+
+        /* Testing to read specific atributes of the data */
+        JSONObject allSales = data.getJSONObject("Time Series (1min)");
+        JSONObject specificSale = allSales.getJSONObject("2023-04-14 15:17:00");
+        String high = specificSale.getString("2. high");
+        logger.info("High: " + high);
+
+        // logger.info(data.toString());
+        // logger.info("\n\n");
       }
     }
   }
