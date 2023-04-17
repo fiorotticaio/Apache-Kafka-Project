@@ -1,19 +1,19 @@
 package kafka;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-
-import java.time.Duration; 
+import org.springframework.kafka.support.serializer.JsonDeserializer; 
 
 
 public class Consumer {
@@ -26,6 +26,7 @@ public class Consumer {
     Properties prop = new Properties();
     prop.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServers);
     prop.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    prop.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
     prop.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class.getName());
     
     // Configurações de grupos de consumidores
@@ -34,18 +35,19 @@ public class Consumer {
     prop.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     prop.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1000");
 
-    KafkaConsumer<String, JSONObject> consumer = new KafkaConsumer<>(prop);
+    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(prop);
 
     // Assina o tópico "sbux_stock"
     consumer.subscribe(Arrays.asList(topic));
 
     while (true) {
-      ConsumerRecords<String, JSONObject> records = consumer.poll(Duration.ofMillis(100));
+      ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(1000));
 
-      for (ConsumerRecord<String, JSONObject> record : records) {
-        logger.info("Key: " + record.key() + ", Value:");
-        logger.info("\n");
-        logger.info(record.value().toString());
+      for (ConsumerRecord<String, byte[]> record : records) {
+        logger.info("Key: " + record.key() + ", Value:\n");
+        byte[] valueBytes = record.value();
+        JSONObject data = new JSONObject(new String(valueBytes, StandardCharsets.UTF_8));
+        logger.info(data.toString());
         logger.info("\n\n");
       }
     }

@@ -11,7 +11,7 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
+import java.nio.charset.StandardCharsets;
 import java.util.Properties;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -34,7 +34,7 @@ public class Producer {
     prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     prop.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class.getName());
 
-    KafkaProducer<String, JSONObject> producer = new KafkaProducer<>(prop); // create the producer
+    KafkaProducer<String, byte[]> producer = new KafkaProducer<>(prop); // create the producer
 
     /* Connection with Alpha Vantage API */
     String function = "TIME_SERIES_INTRADAY";
@@ -44,27 +44,30 @@ public class Producer {
     String url = String.format("https://www.alphavantage.co/query?function=%s&interval=%s&symbol=%s&apikey=%s", function, interval, symbol, apiKey);
 
     HttpClient client = HttpClientBuilder.create().build();
-
+    int i=0;
     while (true) {
+      i+=1;
       HttpGet request = new HttpGet(url);
       URL apiUrl = new URL(url);
       HttpURLConnection conn = (HttpURLConnection) apiUrl.openConnection();
       conn.setRequestMethod("GET");
-      JSONObject data = null;
+      // JSONObject value = null;
 
       try {
         HttpResponse response = client.execute(request);
-        String json = EntityUtils.toString(response.getEntity());
-        data = new JSONObject(json);
+        String responseObject = EntityUtils.toString(response.getEntity());
+        // value = new JSONObject(json);
+        // System.out.println("JSON GERADO: " + value);
+        byte[] value = responseObject.getBytes(StandardCharsets.UTF_8);
+        ProducerRecord<String, byte[]> record = new ProducerRecord<String, byte[]>(topic, "id_"+i, value);
+        producer.send(record);
       } catch (Exception ex) {
         ex.printStackTrace();
       }
 
-      System.out.println("JSON GERADO: " + data);
 
       
-      ProducerRecord<String, JSONObject> record = new ProducerRecord<>(topic, data);
-      producer.send(record);
+      
       Thread.sleep(60000); // espera 1min segundos antes de buscar novos dados
     }
   }
