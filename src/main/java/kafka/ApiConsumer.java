@@ -18,8 +18,8 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 public class ApiConsumer {
   public static void main(String[] args) {
-    String BootstrapServers = "localhost:9092";
-    String topic = "sbux_stock";
+    String BootstrapServers = "localhost:9092"; // Kafka server address
+    String topic = "sbux-stock"; // Name of the topic to be consumed
 
     Logger logger = LoggerFactory.getLogger(ApiConsumer.class.getName());
 
@@ -30,15 +30,14 @@ public class ApiConsumer {
     prop.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class.getName());
     
     /* Consumer group settings */
-    prop.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "group-1");
+    prop.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "stock-group");
     prop.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     prop.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     prop.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1000");
 
-    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(prop);
+    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(prop); // Create consumer
 
-    /* Subscribe in topic "sbux_stock" */
-    consumer.subscribe(Arrays.asList(topic));
+    consumer.subscribe(Arrays.asList(topic)); // Subscribe in topic "sbux-stock" 
 
     /* Our historical average */
     double openAverage = 0.0, openAverageAux = 0.0;
@@ -51,6 +50,7 @@ public class ApiConsumer {
     int maior = 0, menor = 0, igual = 0;
 
     while (true) {
+      /* Maximum waiting time for the message (in ms) */
       ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(1000));
 
       for (ConsumerRecord<String, byte[]> record : records) {
