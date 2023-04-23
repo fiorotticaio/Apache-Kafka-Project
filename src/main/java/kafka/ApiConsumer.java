@@ -16,12 +16,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer; 
 
 
-public class Consumer {
+public class ApiConsumer {
   public static void main(String[] args) {
     String BootstrapServers = "localhost:9092";
     String topic = "sbux_stock";
 
-    Logger logger = LoggerFactory.getLogger(Consumer.class.getName());
+    Logger logger = LoggerFactory.getLogger(ApiConsumer.class.getName());
 
     Properties prop = new Properties();
     prop.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServers);
