@@ -21,7 +21,7 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 public class ApiProducer {
   public static void main(String[] args) throws InterruptedException, IOException {
     String BootstrapServers = "localhost:9092";
-    String topic = "sbux_stock";
+    String topic = "sbux-stock";
 
     /* Setting procudor properties */
     Properties prop = new Properties();

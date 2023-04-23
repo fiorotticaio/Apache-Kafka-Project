@@ -16,7 +16,7 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 public class CoffeeConsumer {
     public static void main(String[] args) {
         String bootstrapServers = "localhost:9092"; // Kafka server address
-        String topic = "sbux-sale"; // Name of the topic to be consumed
+        String topic = "test-topic"; // Name of the topic to be consumed
 
         /* Consumer settings */
         Properties prop = new Properties();
@@ -26,7 +26,7 @@ public class CoffeeConsumer {
         prop.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 
         /* Consumer group settings */
-        prop.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "sales-group");
+        prop.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "test-consumer-group");
         prop.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
         prop.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
         prop.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1000");
