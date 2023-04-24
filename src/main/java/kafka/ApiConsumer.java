@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.Random;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -68,10 +69,16 @@ public class ApiConsumer {
           Double low = Double.parseDouble(timeSeriesObj.getString("3. low")); // Get the low field
           Double close = Double.parseDouble(timeSeriesObj.getString("4. close")); // Get the close field
           Double volume = Double.parseDouble(timeSeriesObj.getString("5. volume")); // Get the volume field
-
+          
+          
+          
           if (recordCounts != 0) { // If it is not the first time, we have to compare if increase or decrease
-            if (high > highAverage) maior++;
-            else if (high < highAverage) menor++;
+            /* Manual change in close value */
+            Random random = new Random();
+            close = close + random.nextDouble()*10;
+
+            if (close > closeAverage) maior++;
+            else if (close < closeAverage) menor++;
             else igual++;
           } 
 
@@ -128,9 +135,9 @@ public class ApiConsumer {
       // System.out.println("Open average: " + openAverage);
       // System.out.println("High average: " + highAverage);
       // System.out.println("Low average: " + lowAverage);
-      // System.out.println("Close average: " + closeAverage);
+      System.out.println("Close average: " + closeAverage);
       // System.out.println("Volume average: " + volumeAverage);
-      // System.out.print("\n");
+      System.out.print("\n");
     }
   }
 }
