@@ -12,8 +12,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.json.JSONObject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.kafka.support.serializer.JsonDeserializer; 
 
 
@@ -39,8 +37,10 @@ public class ApiConsumer {
     consumer.subscribe(Arrays.asList(topic)); // Subscribe in topic "sbux-stock" 
 
     /* Our historical average */
-    double closeAverage = 0.0, closeAverageAux = 0.0;
+    double closeAverage = 0.0, closeAverageAux = 0.0, closeAverageVariation = 0.0;
     int countSales = 0, recordCounts = 0;
+
+    double coffeeValue = 4; // TODO: esse dado vai vir de algum lugar
 
     while (true) {
       /* Maximum waiting time for the message (in ms) */
@@ -49,7 +49,7 @@ public class ApiConsumer {
       for (ConsumerRecord<String, byte[]> record : records) {
         byte[] valueBytes = record.value();
         JSONObject data = new JSONObject(new String(valueBytes, StandardCharsets.UTF_8)); // Convert byte[] to JSONObject
-        
+
         JSONObject timeSeries = data.getJSONObject("Time Series (1min)"); // Object with all sales
         for (String key : timeSeries.keySet()) { // Go through all sales
           JSONObject timeSeriesObj = timeSeries.getJSONObject(key);
@@ -71,7 +71,13 @@ public class ApiConsumer {
         /* Updating the historical average */
         /* If it is the first time, we have to set the historical average */
         if (recordCounts == 0) closeAverage = closeAverageAux;
-        else closeAverage = (closeAverage + closeAverageAux) / 2;
+        else {
+          closeAverage = (closeAverage + closeAverageAux) / 2;
+          closeAverageVariation = ((closeAverageAux - closeAverage) * 100) / closeAverage;
+          // closeAverageVariation = getModule(closeAverageVariation);
+        }
+
+        coffeeValue = changeCoffeeValue(coffeeValue, closeAverageVariation); // Change the coffee value
     
         /* Resetting aux variables */
         closeAverageAux = 0.0;
@@ -81,7 +87,21 @@ public class ApiConsumer {
       }
 
       System.out.println("Close average: " + closeAverage);
+      System.out.println("Coffee value: " + coffeeValue);
       System.out.print("\n");
     }
+  }
+
+  private static double getModule(double num) {
+    if (num >= 0) return num;
+    else return -num; 
+  }
+
+  private static double changeCoffeeValue(double coffeeValue, double closeAverageVariation) {
+    /* If the variation is greater than 1.5%, we increase the coffee value */
+    if (closeAverageVariation >= 1.5 || closeAverageVariation <= 1.5) { 
+      coffeeValue += closeAverageVariation; // The change in price is the percentage increase/decrease
+    }
+    return coffeeValue;
   }
 }
