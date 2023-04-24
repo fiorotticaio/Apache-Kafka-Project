@@ -29,7 +29,7 @@ public class ApiProducer {
     prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     prop.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class.getName());
 
-    KafkaProducer<String, byte[]> producer = new KafkaProducer<>(prop); // create the producer
+    KafkaProducer<String, byte[]> producer = new KafkaProducer<>(prop); // Create the producer
 
     /* Connection with Alpha Vantage API */
     String function = "TIME_SERIES_INTRADAY";
@@ -41,7 +41,7 @@ public class ApiProducer {
     HttpClient client = HttpClientBuilder.create().build();
     int i = 0;
     while (true) {
-      i+=1;
+      i += 1;
       HttpGet request = new HttpGet(url);
       URL apiUrl = new URL(url);
       HttpURLConnection conn = (HttpURLConnection) apiUrl.openConnection();
