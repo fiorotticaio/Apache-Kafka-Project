@@ -20,7 +20,7 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 public class ApiConsumer {
   public static void main(String[] args) {
     String BootstrapServers = "localhost:9092"; // Kafka server address
-    String topic = "sbux-stock"; // Name of the topic to be consumed
+    String topic = "coffee-stock"; // Name of the topic to be consumed
 
     Logger logger = LoggerFactory.getLogger(ApiConsumer.class.getName());
 
