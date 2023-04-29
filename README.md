@@ -1,5 +1,17 @@
 # Apache-Kafka-Project
 
+## Topicos
+	1. coffee_stock = - Pega o preço da ação do café a cada minuto;
+										- Uma partição; 
+										- Replicação de 1;
+	2. coffee_price = - Armazena o preço do café gerado pela ação, o preço gerado pela 
+											web page e o preço real (que aparece na web page);
+										- 3 partições, um para cada preço;
+											- partição 0 = preço do café pela ação;
+											- partição 1 = preço do café gerado pela web page;
+											- partição 2 = preço real do café;
+										- Replicação de 1;
+
 ## Instructions
 
 Remember to clear all kafka cache before initializing producers and consumers

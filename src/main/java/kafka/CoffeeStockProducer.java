@@ -18,10 +18,10 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 
 
-public class ApiProducer {
+public class CoffeeStockProducer {
   public static void main(String[] args) throws InterruptedException, IOException {
     String BootstrapServers = "localhost:9092";
-    String topic = "coffee-stock";
+    String topic = "coffee_stock";
 
     /* Setting procudor properties */
     Properties prop = new Properties();
@@ -52,9 +52,8 @@ public class ApiProducer {
         String responseObject = EntityUtils.toString(response.getEntity());
         byte[] value = responseObject.getBytes(StandardCharsets.UTF_8);
         ProducerRecord<String, byte[]> record = new ProducerRecord<String, byte[]>(topic, "id_"+i, value);
-
-        // TODO: definir uma key e um value para esse evento
         producer.send(record);
+
       } catch (Exception ex) {
         ex.printStackTrace();
       }
