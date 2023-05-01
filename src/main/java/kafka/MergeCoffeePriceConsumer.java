@@ -2,6 +2,7 @@ package kafka;
 
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -18,79 +19,90 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 public class MergeCoffeePriceConsumer {
   public static void main(String[] args) {
-    String BootstrapServers = "localhost:9092"; // Kafka server address
-    String topic = "coffee_price"; // Name of the topic to be consumed
-    int api_coffee_price = 2; // Partition to the key "api_coffee_price"
-    int web_coffee_price = 1; // Partition to the key "web_coffee_price"
+    /* Kafka configuration */
+    String BootstrapServer = "localhost:9092"; 
+    String topic = "coffee_price"; 
+
+    /* Setting partitions on topic (one for api response value, and other for interaction on UI) */
+    int api_coffee_price = 0;
+    int web_coffee_price = 1;
+    int real_coffee_price = 2;
   
+    /* Setting consumer properties */
     Properties prop = new Properties();
-    prop.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServers);
+    prop.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
     prop.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
     prop.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
     prop.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
     
-    /* Consumer group settings */
+    /* Consumer group settings (this is not necessary. Learning purposes)*/
     prop.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "price_group");
     prop.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     prop.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     prop.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1000");
   
-    KafkaConsumer<String, String> consumerWebCoffeePricePartition = new KafkaConsumer<>(prop); // Create consumer 2
-    KafkaConsumer<String, String> consumerApiCoffeePricePartition = new KafkaConsumer<>(prop); // Create consumer 1
-  
-    List<TopicPartition> partitions = Arrays.asList(new TopicPartition(topic, web_coffee_price));
-    consumerWebCoffeePricePartition.assign((partitions)); // Subscribe in topic "coffee_price" in partition 1
+    /* Creating two consumers, one for each partition */  
+    KafkaConsumer<String, String> consumerApiCoffeePricePartition = new KafkaConsumer<>(prop);
+    KafkaConsumer<String, String> consumerWebCoffeePricePartition = new KafkaConsumer<>(prop);
     
-    partitions = Arrays.asList(new TopicPartition(topic, api_coffee_price));
-    consumerApiCoffeePricePartition.assign((partitions)); // Subscribe in topic "coffee_price" in partition 2
+    /* Assining the api partition on the api consumer */
+    TopicPartition apiPartition = new TopicPartition(topic, api_coffee_price);
+    consumerApiCoffeePricePartition.assign(Collections.singletonList(apiPartition));
+    
+    // /* Assining the web partition on the web consumer */
+    // TopicPartition webPartition = new TopicPartition(topic, web_coffee_price);
+    // consumerWebCoffeePricePartition.assign(Collections.singletonList(webPartition));
 
-    String apiCoffePriceStr = "";
-    String webCoffePriceStr = "";
-
+    String apiCoffePriceStr = "0.0";
+    String webCoffePriceStr = "0.0";
+    int count=0;
+    
     while (true) {
-      /* Maximum waiting time for the message (in ms) */
-      System.out.println("Partition: " + web_coffee_price);
-      ConsumerRecords<String, String> records1 = consumerWebCoffeePricePartition.poll(Duration.ofMillis(1000));
-      for (ConsumerRecord<String, String> record : records1) {
-        System.out.println("Offset: " + record.offset() + ", Key: " + record.key() + ", Value: " + record.value());
-        webCoffePriceStr = record.value();
-      }
-
-      ConsumerRecords<String, String> records2 = consumerApiCoffeePricePartition.poll(Duration.ofMillis(1000));
-      System.out.println("Partition: " + api_coffee_price);
+      /* Polling from api partition on topic, each second */
+      ConsumerRecords<String, String> records2 = consumerApiCoffeePricePartition.poll(Duration.ofMillis(2000));
       for (ConsumerRecord<String, String> record : records2) {
-        System.out.println("Offset: " + record.offset() + ", Key: " + record.key() + ", Value: " + record.value());
+        /* Storing the value for api partition on string */
         apiCoffePriceStr = record.value();
       }
 
+      // /* Polling from web partition on topic, each second */
+      // ConsumerRecords<String, String> records1 = consumerWebCoffeePricePartition.poll(Duration.ofMillis(2000));
+      // for (ConsumerRecord<String, String> record : records1) {
+      //   /* Storing the value for web partition on string */
+      //   webCoffePriceStr = record.value();
+      // }
+
+      /* Merging both values */
       double realCoffeePrice = mergePrices(Double.parseDouble(webCoffePriceStr), Double.parseDouble(apiCoffePriceStr));
-      System.out.println("Real coffee price: " + realCoffeePrice);
-      // sendRealCoffeePriceToTopic(realCoffeePrice);
+      System.out.printf("Real coffee price [%s/%s]: %.2f\n", webCoffePriceStr, apiCoffePriceStr, realCoffeePrice);
+
+      sendRealCoffeePriceToTopic(count++, topic, real_coffee_price, BootstrapServer, realCoffeePrice);
     }
   }
 
-  private static void sendRealCoffeePriceToTopic(double realCoffeePrice) {
-    /* New producer that send a record in a specifc partition of the "coffe_price" topic */
-    String BootstrapServers = "localhost:9092";
-    String topic = "coffee_price";
-    String partitionKey = "real_coffee_price";
-
-    /* Setting procudor properties */
+  private static void sendRealCoffeePriceToTopic(int id, String topic, int partition, String BootstrapServer, double realCoffeePrice) {
+    /* New producer that send a record in the last partition of the "coffee_price" topic */
     Properties prop = new Properties();
-    prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServers);
+    prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
     prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     prop.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
-    KafkaProducer<String, String> producer = new KafkaProducer<>(prop); // Create the producer
+    /* Creating producer to send the merged value to partition */
+    KafkaProducer<String, String> producer = new KafkaProducer<>(prop);
 
-    /* Create a record to a specific partitiof of the topic */
+    /* Create a record to partition of the topic */
     String realCoffeePriceStr = Double.toString(realCoffeePrice);
-    ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, partitionKey, realCoffeePriceStr);
+    ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, partition, "id_"+id, realCoffeePriceStr);
     producer.send(record);
+    producer.close();
   }
 
-  private static double mergePrices(double parseDouble, double parseDouble2) {
-    /* The real price is the average of these two */
-    return (parseDouble + parseDouble2) / 2;
+  private static double mergePrices(double webPrice, double apiPrice) {
+    /* Checking if one of the prices are not set, if so, set the other */
+    if (webPrice==0 && apiPrice!=0) return apiPrice;
+    else if (webPrice!=0 && apiPrice==0) return webPrice;
+    
+    /* The merging strategy is a simple arithmetic average */
+    return (webPrice + apiPrice) / 2;
   }
 }

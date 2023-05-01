@@ -21,105 +21,119 @@ import org.springframework.kafka.support.serializer.JsonDeserializer;
 
 public class CoffeeStockConsumer {
   public static void main(String[] args) {
-    String BootstrapServers = "localhost:9092"; // Kafka server address
-    String topic = "coffee_stock"; // Name of the topic to be consumed
+    
+    /* Kafka configuration */
+    String BootstrapServer = "localhost:9092"; 
+    String sourceTopic = "coffee_stock"; 
+    String destinationTopic = "coffee_price";
+    int inflationFactor = 5;
 
+    /* Setting consumer properties */
     Properties prop = new Properties();
-    prop.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServers);
+    prop.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
     prop.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
     prop.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
     prop.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class.getName());
     
-    /* Consumer group settings */
+    /* Consumer group settings (this is not necessary. Learning purposes)*/
     prop.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "stock_group");
     prop.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
     prop.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
     prop.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1000");
 
-    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(prop); // Create consumer
+    /* Creating consumer and subscribing to sourceTopic */
+    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(prop); 
+    consumer.subscribe(Arrays.asList(sourceTopic)); 
 
-    consumer.subscribe(Arrays.asList(topic)); // Subscribe in topic "coffee_stock" 
-
-    /* Our historical average */
-    double closeAverage = 0.0, closeAverageAux = 0.0, closeAverageVariation = 0.0;
-    int countSales = 0, recordCounts = 0;
-
-    double coffeeValue = 4; // Initial value of coffee
+    /* Initialization of arbitrary value for coffee */
+    Double globalCloseAverage = 106.0, coffeeValue = 4.0;
 
     while (true) {
-      /* Maximum waiting time for the message (in ms) */
-      ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(1000));
+      /* Polling from topic each second */
+      ConsumerRecords<String, byte[]> records = consumer.poll(Duration.ofMillis(3000));
 
+      /* Iterating over all the requests stored on kafka and converting the byte[] to JSON */
       for (ConsumerRecord<String, byte[]> record : records) {
+        Double sumCloseValue = 0.0;
+        int countSales=0;
+
         byte[] valueBytes = record.value();
-        JSONObject data = new JSONObject(new String(valueBytes, StandardCharsets.UTF_8)); // Convert byte[] to JSONObject
+        JSONObject data = new JSONObject(new String(valueBytes, StandardCharsets.UTF_8)); 
+        JSONObject timeSeries = data.getJSONObject("Time Series (1min)"); 
 
-        JSONObject timeSeries = data.getJSONObject("Time Series (1min)"); // Object with all sales
-        for (String key : timeSeries.keySet()) { // Go through all sales
+        /* Iterate over sales on a single request */
+        for (String key : timeSeries.keySet()) { 
+          /* Recieving the 'close' value */
           JSONObject timeSeriesObj = timeSeries.getJSONObject(key);
-          Double close = Double.parseDouble(timeSeriesObj.getString("4. close")); // Get the close field
+          Double close = Double.parseDouble(timeSeriesObj.getString("4. close")); 
           
-          if (recordCounts != 0) { // If it is not the first time, we have to compare if increase or decrease
-            /* Manual change in close value */
-            Random random = new Random();
-            close = close + random.nextDouble()*10;
-          } 
-
-          closeAverageAux += close;
+          sumCloseValue += close;
           countSales += 1;
         }
 
-        /* Calculating the average of the last "countSales" sales */
-        closeAverageAux /= countSales;
+        /* Calculating the average for these sales*/
+        Double closeAverageOnRequest = sumCloseValue/countSales;
 
-        /* Updating the historical average */
-        /* If it is the first time, we have to set the historical average */
-        if (recordCounts == 0) closeAverage = closeAverageAux;
-        else {
-          closeAverage = (closeAverage + closeAverageAux) / 2;
-          closeAverageVariation = ((closeAverageAux - closeAverage) * 100) / closeAverage;
-        }
-
-        coffeeValue = changeCoffeeValue(coffeeValue, closeAverageVariation); // Change the coffee value
-        sendCoffeeValueToTopic(coffeeValue); // Send the coffee value to the topic "coffee_price"
-    
-        /* Resetting aux variables */
-        closeAverageAux = 0.0;
-        countSales = 0;
-
-        recordCounts++;
+        /* Inserting this influence on global close average */
+        globalCloseAverage=(globalCloseAverage+closeAverageOnRequest)/2;
       }
 
-      System.out.println("Close average: " + closeAverage);
-      System.out.println("Coffee value: " + coffeeValue);
+      /* Here, for illustration purposes, the 'close' value receives a random change */
+      int increaseOrDecrease = 0;
+      if (new Random().nextDouble()>.5) increaseOrDecrease=-1; else increaseOrDecrease=1;
+      Double variation = (new Random().nextDouble()*inflationFactor)*increaseOrDecrease;
+      Double randomClose = globalCloseAverage + variation;
+
+      /* Updating the historical average or setting new one if it is the first iteration */
+      Double lastAverage = globalCloseAverage;
+      globalCloseAverage=(globalCloseAverage+randomClose)/2;
+      Double closeAverageVariation = ((globalCloseAverage - lastAverage) / globalCloseAverage) * 100;
+    
+      /* Updating coffee value */
+      coffeeValue = changeCoffeeValue(coffeeValue, closeAverageVariation); 
+      
+      /* Sending coffee value to the 'coffee_price' topic */
+      sendCoffeeValueToTopic(0,destinationTopic, BootstrapServer, coffeeValue); 
+
+      System.out.println("Publishing Close average ("+globalCloseAverage+") on api partition at api_coffee_price");
+      System.out.println("Publishing Coffee value ("+coffeeValue+") on api partition at api_coffee_price");
       System.out.print("\n");
     }
   }
 
-  private static void sendCoffeeValueToTopic(double coffeeValue) {
-    /* New producer that send a record in a specifc partition of the "coffe_price" topic */
-    String BootstrapServers = "localhost:9092";
-    String topic = "coffee_price";
-    String partitionKey = "api_coffee_price";
-
-    /* Setting procudor properties */
+  private static void sendCoffeeValueToTopic(int id, String topic, String BootstrapServer, double coffeeValue) {
+    /*TODO: 
+     * rever se precisa realmente ficar criando sempre esse producer aqui
+     * ele sendo criado toda hora gera mta sujeira no console e fica dificil de debugar
+     * talvez seja bom colocar ele do lado de fora e só chamar aqui o .send()
+    */
+    
+    /* Setting partition identification */
+    int api_coffee_price = 0;
+    
+    /* Setting new producer properties */
     Properties prop = new Properties();
-    prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServers);
+    prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
     prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
     prop.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
-    KafkaProducer<String, String> producer = new KafkaProducer<>(prop); // Create the producer
+    /* Instantiating new producer */
+    KafkaProducer<String, String> producer = new KafkaProducer<>(prop);
 
-    /* Create a record to a specific partitiof of the topic */
+    /* Creating a record on the partition, with the new coffee value */
     String coffeeValueStr = Double.toString(coffeeValue);
-    ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, partitionKey, coffeeValueStr);
+    ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, api_coffee_price, "id_"+id, coffeeValueStr);
     producer.send(record);
+    producer.close();
+    
+    System.out.println("Publishing Coffee value ("+coffeeValue+") at api_coffee_price");
   }
 
   private static double changeCoffeeValue(double coffeeValue, double closeAverageVariation) {
-    /* If the variation is greater than 1.5%, we increase the coffee value */
+    /* If the variation is greater than 1.5%, the coffee value increases */
     if (closeAverageVariation >= 2 || closeAverageVariation <= 2) { 
-      coffeeValue += closeAverageVariation / 10; // The change in price is the percentage increase/decrease / 10
+      /* The increase value is 'boosted' for generating more visual effect */
+      coffeeValue += closeAverageVariation / 10; 
     }
     return coffeeValue;
   }
