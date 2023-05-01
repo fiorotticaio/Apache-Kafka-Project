@@ -1,9 +1,7 @@
 package kafka;
 
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -50,8 +48,8 @@ public class MergeCoffeePriceConsumer {
     consumerApiCoffeePricePartition.assign(Collections.singletonList(apiPartition));
     
     // /* Assining the web partition on the web consumer */
-    // TopicPartition webPartition = new TopicPartition(topic, web_coffee_price);
-    // consumerWebCoffeePricePartition.assign(Collections.singletonList(webPartition));
+    TopicPartition webPartition = new TopicPartition(topic, web_coffee_price);
+    consumerWebCoffeePricePartition.assign(Collections.singletonList(webPartition));
 
     String apiCoffePriceStr = "0.0";
     String webCoffePriceStr = "0.0";
@@ -66,11 +64,11 @@ public class MergeCoffeePriceConsumer {
       }
 
       // /* Polling from web partition on topic, each second */
-      // ConsumerRecords<String, String> records1 = consumerWebCoffeePricePartition.poll(Duration.ofMillis(2000));
-      // for (ConsumerRecord<String, String> record : records1) {
-      //   /* Storing the value for web partition on string */
-      //   webCoffePriceStr = record.value();
-      // }
+      ConsumerRecords<String, String> records1 = consumerWebCoffeePricePartition.poll(Duration.ofMillis(2000));
+      for (ConsumerRecord<String, String> record : records1) {
+        /* Storing the value for web partition on string */
+        webCoffePriceStr = record.value();
+      }
 
       /* Merging both values */
       double realCoffeePrice = mergePrices(Double.parseDouble(webCoffePriceStr), Double.parseDouble(apiCoffePriceStr));

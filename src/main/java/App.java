@@ -21,6 +21,10 @@ public class App {
       NewTopic coffeePrice = new NewTopic("coffee_price", 3, (short) 1);
       adminClient.createTopics(Collections.singleton(coffeePrice)).all().get();
 
+      // Create the 'coffee_sales' topic
+      NewTopic coffeeSales = new NewTopic("coffee_sales", 1, (short) 1);
+      adminClient.createTopics(Collections.singleton(coffeeSales)).all().get();
+
       adminClient.close();
   }
 }
