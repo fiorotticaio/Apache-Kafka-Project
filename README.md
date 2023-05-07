@@ -48,3 +48,8 @@ And them you substitute the suappikey with your key
 -[ ] gerar um evento caso starbucks america esteja maior que a europa
 
 -[ ] usar criatividade e verificar riqueza da api
+
+
+## Integration repository
+
+- Use the [main repository](https://github.com/matheusschreiber/Starbucks-stocks) to run all application
