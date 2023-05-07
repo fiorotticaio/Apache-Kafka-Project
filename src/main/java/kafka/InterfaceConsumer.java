@@ -45,6 +45,7 @@ public class InterfaceConsumer {
 
         /* Initialization of the parameter that controls the amount of sales registered */
         int countCoffeeSales = 0;
+        Double coffeeValue=0.0;
 
         /* Loop to consume messages */
         while (true) {
@@ -53,7 +54,7 @@ public class InterfaceConsumer {
             
             for (ConsumerRecord<String, String> record : records) {
                 System.out.println("Received message: " + record.value());
-                // int coffeeValue = Integer.parseInt(record.value()); // TODO: receber o valor do café lá na interface
+                coffeeValue = Double.parseDouble(record.value()); 
                 countCoffeeSales++;
 
                 System.out.println("COUNT: " + countCoffeeSales);
@@ -61,11 +62,8 @@ public class InterfaceConsumer {
             }
 
             /* If sales surpass some threshold, the overall price of coffee rises */
-            if (countCoffeeSales >= 20) { 
-                Double newCoffeeValue = 5.0;    
-                
-                //...
-
+            if (countCoffeeSales >= 5) { 
+                Double newCoffeeValue = coffeeValue*1.5;    
                 sendSalesToTopic(destinationTopic, web_coffee_price, BootstrapServer, newCoffeeValue);
                 System.out.println("Aumentou o preço do café");
                 countCoffeeSales = 0; 
