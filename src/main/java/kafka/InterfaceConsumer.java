@@ -62,11 +62,8 @@ public class InterfaceConsumer {
             }
 
             /* If sales surpass some threshold, the overall price of coffee rises */
-            if (countCoffeeSales >= 20) { 
-                Double newCoffeeValue = coffeeValue*1.01;    
-                
-                //...
-
+            if (countCoffeeSales >= 5) { 
+                Double newCoffeeValue = coffeeValue*1.5;    
                 sendSalesToTopic(destinationTopic, web_coffee_price, BootstrapServer, newCoffeeValue);
                 System.out.println("Aumentou o preço do café");
                 countCoffeeSales = 0; 
