@@ -66,7 +66,6 @@ public class CoffeeStockProducer {
       }
 
 
-      //TODO: change to 1 min
       /* Sleep for 20 seconds, before getting new API call */
       Thread.sleep(20000); 
     }

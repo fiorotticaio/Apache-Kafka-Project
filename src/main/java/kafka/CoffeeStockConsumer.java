@@ -28,22 +28,34 @@ public class CoffeeStockConsumer {
     String destinationTopic = "coffee_price";
     int inflationFactor = 5;
 
+    /* Creating consumer to receive raw data from API topic */
     /* Setting consumer properties */
-    Properties prop = new Properties();
-    prop.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
-    prop.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
-    prop.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
-    prop.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class.getName());
+    Properties propConsumer = new Properties();
+    propConsumer.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
+    propConsumer.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+    propConsumer.put(JsonDeserializer.TRUSTED_PACKAGES, "*");
+    propConsumer.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, JsonDeserializer.class.getName());
     
     /* Consumer group settings (this is not necessary. Learning purposes)*/
-    prop.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "stock_group");
-    prop.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
-    prop.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
-    prop.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1000");
+    propConsumer.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "stock_group");
+    propConsumer.setProperty(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "latest");
+    propConsumer.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "true");
+    propConsumer.setProperty(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "1000");
 
     /* Creating consumer and subscribing to sourceTopic */
-    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(prop); 
+    KafkaConsumer<String, byte[]> consumer = new KafkaConsumer<>(propConsumer); 
     consumer.subscribe(Arrays.asList(sourceTopic)); 
+
+
+    /* Creating producer to send coffee value got from API to the topic */
+    /* Setting new producer properties */
+    Properties propProducer = new Properties();
+    propProducer.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
+    propProducer.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+    propProducer.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+
+    /* Instantiating new producer */
+    KafkaProducer<String, String> producer = new KafkaProducer<>(propProducer);
 
     /* Initialization of arbitrary value for coffee */
     Double globalCloseAverage = 106.0, coffeeValue = 4.0;
@@ -93,7 +105,7 @@ public class CoffeeStockConsumer {
       coffeeValue = changeCoffeeValue(coffeeValue, closeAverageVariation); 
       
       /* Sending coffee value to the 'coffee_price' topic */
-      sendCoffeeValueToTopic(0,destinationTopic, BootstrapServer, coffeeValue); 
+      sendCoffeeValueToTopic(0,destinationTopic, BootstrapServer, coffeeValue, producer); 
 
       System.out.println("Publishing Close average ("+globalCloseAverage+") on api partition at api_coffee_price");
       System.out.println("Publishing Coffee value ("+coffeeValue+") on api partition at api_coffee_price");
@@ -101,33 +113,20 @@ public class CoffeeStockConsumer {
     }
   }
 
-  private static void sendCoffeeValueToTopic(int id, String topic, String BootstrapServer, double coffeeValue) {
-    /*TODO: 
-     * rever se precisa realmente ficar criando sempre esse producer aqui
-     * ele sendo criado toda hora gera mta sujeira no console e fica dificil de debugar
-     * talvez seja bom colocar ele do lado de fora e só chamar aqui o .send()
-    */
+  private static void sendCoffeeValueToTopic(int id, String destinationTopic,
+     String BootstrapServer, double coffeeValue, KafkaProducer<String, String> producer) {
     
     /* Setting partition identification */
     int api_coffee_price = 0;
-    
-    /* Setting new producer properties */
-    Properties prop = new Properties();
-    prop.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BootstrapServer);
-    prop.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-    prop.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
-
-    /* Instantiating new producer */
-    KafkaProducer<String, String> producer = new KafkaProducer<>(prop);
 
     /* Creating a record on the partition, with the new coffee value */
     String coffeeValueStr = Double.toString(coffeeValue);
-    ProducerRecord<String, String> record = new ProducerRecord<String, String>(topic, api_coffee_price, "id_"+id, coffeeValueStr);
+    ProducerRecord<String, String> record = new ProducerRecord<String, String>(destinationTopic, api_coffee_price, "id_"+id, coffeeValueStr);
     producer.send(record);
-    producer.close();
     
     System.out.println("Publishing Coffee value ("+coffeeValue+") at api_coffee_price");
   }
+  
 
   private static double changeCoffeeValue(double coffeeValue, double closeAverageVariation) {
     /* If the variation is greater than 1.5%, the coffee value increases */

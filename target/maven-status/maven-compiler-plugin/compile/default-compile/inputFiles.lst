@@ -1,5 +1,5 @@
-/home/matheus/Documentos/disciplinas/5-semestre/kafka/Kafka-Project-Docker/Apache-Kafka-Project/src/main/java/kafka/MergeCoffeePriceConsumer.java
-/home/matheus/Documentos/disciplinas/5-semestre/kafka/Kafka-Project-Docker/Apache-Kafka-Project/src/main/java/kafka/CoffeeStockProducer.java
-/home/matheus/Documentos/disciplinas/5-semestre/kafka/Kafka-Project-Docker/Apache-Kafka-Project/src/main/java/kafka/CoffeeStockConsumer.java
-/home/matheus/Documentos/disciplinas/5-semestre/kafka/Kafka-Project-Docker/Apache-Kafka-Project/src/main/java/App.java
-/home/matheus/Documentos/disciplinas/5-semestre/kafka/Kafka-Project-Docker/Apache-Kafka-Project/src/main/java/kafka/InterfaceConsumer.java
+/app/Apache-Kafka-Project/src/main/java/kafka/CoffeeStockConsumer.java
+/app/Apache-Kafka-Project/src/main/java/App.java
+/app/Apache-Kafka-Project/src/main/java/kafka/InterfaceConsumer.java
+/app/Apache-Kafka-Project/src/main/java/kafka/MergeCoffeePriceConsumer.java
+/app/Apache-Kafka-Project/src/main/java/kafka/CoffeeStockProducer.java
